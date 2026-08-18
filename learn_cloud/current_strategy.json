@@ -5,8 +5,8 @@
     "oversold": 20,
     "overbought": 80
   },
-  "source": "seed",
-  "mean_test_sharpe": null,
-  "overfit_gap": null,
-  "updated_at": "2026-08-18T16:02:04.591442"
+  "source": "auto_retune",
+  "mean_test_sharpe": 2.0631331466361242,
+  "overfit_gap": -2.064832098231056,
+  "updated_at": "2026-08-18T22:24:22.422418"
 }

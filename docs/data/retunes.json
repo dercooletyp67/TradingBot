@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1,
+    "timestamp": "2026-08-18T22:24:22.296311",
+    "old_strategy": "rsi_reversion",
+    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "new_strategy": "rsi_reversion",
+    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "mean_test_sharpe": 2.0631331466361242,
+    "overfit_gap": -2.064832098231056,
+    "changed": 0
+  }
+]
