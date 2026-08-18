@@ -9,6 +9,10 @@ OANDA_API_KEY = os.getenv("OANDA_API_KEY", "")
 OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID", "")
 OANDA_ENV = os.getenv("OANDA_ENV", "practice")
 
+# Optional. Never hardcode this -- it's a secret (anyone with it can post to
+# the Discord channel). Notifications are silently skipped if unset.
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
 OANDA_HOSTS = {
     "practice": "https://api-fxpractice.oanda.com",
     "live": "https://api-fxtrade.oanda.com",

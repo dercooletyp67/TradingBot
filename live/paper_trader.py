@@ -27,6 +27,8 @@ import json
 import time
 
 from live.learn_log import append_history, write_current_strategy
+from live.notify import notify_retune, notify_trade
+from live.position_sizing import PositionSizingConfig, compute_units
 from storage.db import (
     get_bot_status,
     get_last_retune_at,
@@ -76,7 +78,7 @@ def _retune_due(auto_retune_hours: float | None) -> bool:
     return elapsed >= auto_retune_hours * 3600
 
 
-def _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, units_per_trade) -> None:
+def _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing: PositionSizingConfig) -> None:
     df = client.get_recent_candles(instrument, granularity, count=CANDLE_LOOKBACK)
     if len(df) < 50:
         print("Not enough candle history yet, waiting...")
@@ -84,7 +86,11 @@ def _tick(client, strategy, active_strategy_name, active_params, instrument, gra
 
     signal = strategy.generate_signals(df, **active_params)
     desired_signal = int(signal.iloc[-1])
-    desired_units = desired_signal * units_per_trade
+
+    account = client.get_account_summary()
+    balance = float(account["balance"])
+    units = compute_units(df, balance, position_sizing)
+    desired_units = desired_signal * units
 
     current_units = client.get_open_units(instrument)
     delta = desired_units - current_units
@@ -98,6 +104,7 @@ def _tick(client, strategy, active_strategy_name, active_params, instrument, gra
             pnl = float(fill.get("pl", 0.0))
             record_trade(active_strategy_name, instrument, side, abs(delta), price, pnl, fill.get("id"))
             print(f"Filled {side} {abs(delta)} units {instrument} @ {price}")
+            notify_trade(active_strategy_name, instrument, side, abs(delta), price, pnl)
         else:
             print(f"Order not filled: {resp}")
 
@@ -114,7 +121,7 @@ def run_paper_trader(
     params: dict,
     instrument: str,
     granularity: str,
-    units_per_trade: int = 1000,
+    position_sizing: PositionSizingConfig | None = None,
     poll_seconds: int = 60,
     broker: str = "simulated",
     starting_balance: float = 10_000.0,
@@ -128,6 +135,7 @@ def run_paper_trader(
 ) -> None:
     """Continuous polling loop: stays alive, sleeps between checks. For
     local/desktop use (see scripts/start_tradingbot.ps1)."""
+    position_sizing = position_sizing or PositionSizingConfig()
     init_db()
 
     active_strategy_name, active_params, is_fresh = _resolve_seed(strategy_name, params)
@@ -162,7 +170,7 @@ def run_paper_trader(
                     strategy = get_strategy(active_strategy_name)
                     set_bot_status(active_strategy_name, instrument, json.dumps(active_params), running=True)
 
-            _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, units_per_trade)
+            _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing)
             time.sleep(poll_seconds)
     except KeyboardInterrupt:
         print("Stopping paper trader.")
@@ -175,7 +183,7 @@ def run_paper_trader_once(
     params: dict,
     instrument: str,
     granularity: str,
-    units_per_trade: int = 1000,
+    position_sizing: PositionSizingConfig | None = None,
     broker: str = "simulated",
     starting_balance: float = 10_000.0,
     auto_retune_hours: float | None = None,
@@ -190,6 +198,7 @@ def run_paper_trader_once(
     cron-driven runs (e.g. GitHub Actions), where each invocation is a fresh
     process with no memory of previous ones -- all state that needs to
     survive between ticks lives in SQLite, not in this process."""
+    position_sizing = position_sizing or PositionSizingConfig()
     init_db()
 
     active_strategy_name, active_params, is_fresh = _resolve_seed(strategy_name, params)
@@ -209,7 +218,7 @@ def run_paper_trader_once(
         strategy = get_strategy(active_strategy_name)
 
     print(f"Tick: {active_strategy_name}{active_params} on {instrument} ({granularity}) via '{broker}' broker.")
-    _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, units_per_trade)
+    _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing)
     set_bot_status(active_strategy_name, instrument, json.dumps(active_params), running=True)
 
 
@@ -240,6 +249,10 @@ def _run_retune_cycle(
         mean_test_sharpe=outcome.mean_test_sharpe, overfit_gap=outcome.overfit_gap,
     )
     set_last_retune_at(dt.datetime.utcnow().isoformat())
+    notify_retune(
+        outcome.changed, current_strategy_name, current_params,
+        outcome.strategy_name, outcome.params, outcome.mean_test_sharpe, outcome.overfit_gap,
+    )
     if outcome.changed:
         print(f"  -> switching to {outcome.strategy_name}{outcome.params} "
               f"(OOS Sharpe {outcome.mean_test_sharpe:.2f}, overfit gap {outcome.overfit_gap:.2f})")

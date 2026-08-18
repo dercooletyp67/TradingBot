@@ -22,12 +22,18 @@ Examples:
   # meant for interactive/desktop use, where the loop above is simpler.
   python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
       --instrument EUR_USD --granularity H1 --once
+
+  # Volatility-based position sizing instead of a fixed unit count: risk
+  # ~1% of balance per trade, position size scaled down when ATR is high:
+  python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
+      --instrument EUR_USD --granularity H1 --position-sizing volatility --risk-pct 0.01
 """
 from __future__ import annotations
 
 import argparse
 
 from live.paper_trader import run_paper_trader, run_paper_trader_once
+from live.position_sizing import PositionSizingConfig
 from run_backtest import parse_params
 
 
@@ -37,8 +43,20 @@ def main():
     ap.add_argument("--params", default="")
     ap.add_argument("--instrument", default="EUR_USD")
     ap.add_argument("--granularity", default="H1")
-    ap.add_argument("--units", type=int, default=1000, help="position size in units when fully long/short")
     ap.add_argument("--poll-seconds", type=int, default=60)
+
+    ap.add_argument(
+        "--position-sizing", choices=["fixed", "volatility"], default="fixed",
+        help="'fixed': always trade --units. 'volatility': size units so a move of "
+        "--atr-multiplier x ATR costs roughly --risk-pct of balance (default: fixed, "
+        "for backward compatibility)",
+    )
+    ap.add_argument("--units", type=int, default=1000, help="units per trade, --position-sizing fixed only")
+    ap.add_argument("--risk-pct", type=float, default=0.01, help="fraction of balance risked per trade, volatility sizing only")
+    ap.add_argument("--atr-period", type=int, default=14)
+    ap.add_argument("--atr-multiplier", type=float, default=1.5)
+    ap.add_argument("--min-units", type=int, default=100)
+    ap.add_argument("--max-units", type=int, default=100_000)
     ap.add_argument("--broker", choices=["simulated", "oanda"], default="simulated")
     ap.add_argument("--starting-balance", type=float, default=10_000.0, help="simulated broker only")
 
@@ -65,12 +83,22 @@ def main():
 
     retune_strategies = None if args.retune_strategies == "all" else args.retune_strategies.split(",")
 
+    position_sizing = PositionSizingConfig(
+        mode=args.position_sizing,
+        fixed_units=args.units,
+        risk_pct=args.risk_pct,
+        atr_period=args.atr_period,
+        atr_multiplier=args.atr_multiplier,
+        min_units=args.min_units,
+        max_units=args.max_units,
+    )
+
     common_kwargs = dict(
         strategy_name=args.strategy,
         params=parse_params(args.params),
         instrument=args.instrument,
         granularity=args.granularity,
-        units_per_trade=args.units,
+        position_sizing=position_sizing,
         broker=args.broker,
         starting_balance=args.starting_balance,
         auto_retune_hours=args.auto_retune_hours,

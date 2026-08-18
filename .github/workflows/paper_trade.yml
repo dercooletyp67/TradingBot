@@ -22,6 +22,11 @@ env:
   # storage/tradingbot.db + learn/ -- see config.py.
   TRADINGBOT_DB_PATH: storage/cloud_tradingbot.db
   TRADINGBOT_LEARN_DIR: learn_cloud
+  # Optional. Add a repo secret named DISCORD_WEBHOOK_URL (Settings ->
+  # Secrets and variables -> Actions -> New repository secret) to get
+  # trade-fill and re-tune notifications. Leave it unset and this is just
+  # empty -- live/notify.py silently skips notifications either way.
+  DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
 jobs:
   tick:
@@ -46,6 +51,7 @@ jobs:
           --strategy rsi_reversion --params period=21,oversold=20,overbought=80
           --instrument EUR_USD --granularity H1
           --auto-retune-hours 6 --retune-search grid
+          --position-sizing volatility --risk-pct 0.01
 
       - name: Export dashboard data
         run: python export_dashboard_data.py

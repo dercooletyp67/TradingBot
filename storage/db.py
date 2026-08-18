@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS bot_status (
     params_json TEXT,
     running INTEGER NOT NULL DEFAULT 0,
     last_heartbeat TEXT,
-    sim_balance REAL NOT NULL DEFAULT 10000,
+    sim_balance REAL NOT NULL DEFAULT 0,
     sim_position_units REAL NOT NULL DEFAULT 0,
     sim_entry_price REAL NOT NULL DEFAULT 0,
     last_retune_at TEXT
@@ -69,7 +69,7 @@ def init_db() -> None:
         conn.executescript(SCHEMA)
         conn.execute("INSERT OR IGNORE INTO bot_status (id, running) VALUES (1, 0)")
         existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(bot_status)")}
-        for col, default in (("sim_balance", 10000), ("sim_position_units", 0), ("sim_entry_price", 0)):
+        for col, default in (("sim_balance", 0), ("sim_position_units", 0), ("sim_entry_price", 0)):
             if col not in existing_cols:
                 conn.execute(f"ALTER TABLE bot_status ADD COLUMN {col} REAL NOT NULL DEFAULT {default}")
         if "last_retune_at" not in existing_cols:

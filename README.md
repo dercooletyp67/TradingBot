@@ -120,6 +120,36 @@ Every re-tune decision is also written to [learn/](learn/) as plain files
 (`current_strategy.json`, `history.jsonl`) — open them in a text editor if
 you want to see what it's picked over time without touching the database.
 
+### Position sizing
+
+`--units 1000` (the default) always trades the same size regardless of how
+volatile the market currently is. `--position-sizing volatility` instead
+sizes each trade so that a move of `--atr-multiplier` (default 1.5) times
+the Average True Range against the position costs roughly `--risk-pct`
+(default 1%) of the account balance — bigger positions in calm markets,
+smaller ones in choppy markets, so *dollar risk per trade* stays roughly
+constant instead of *unit count*.
+
+```bash
+python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
+    --instrument EUR_USD --granularity H1 --position-sizing volatility --risk-pct 0.01
+```
+
+This only sizes the next trade — it doesn't place a real stop-loss order,
+so an unusually large single move can still cost more than the risk
+budget. See `live/position_sizing.py` for the full caveats (it also assumes
+the account currency equals the pair's quote currency, which is exactly
+true for EUR_USD/USD but an approximation for other pairs).
+
+### Notifications
+
+Set `DISCORD_WEBHOOK_URL` in `.env` (get one from a Discord channel's
+Integrations settings) to get a message posted for every trade fill and
+every re-tune decision. Leave it unset and notifications are silently
+skipped — nothing else changes. Treat the URL as a secret: anyone who has
+it can post to that channel, so it's never read from anywhere but env vars
+(`live/notify.py`), and `.env` is gitignored.
+
 ## 5. Watch the dashboard
 
 In a separate terminal, with the paper trader running:
@@ -178,6 +208,11 @@ code aren't things I can do on your behalf):**
 5. The workflow starts running automatically on its schedule. To trigger
    the first run immediately instead of waiting: repo page → **Actions**
    tab → "Paper Trade" → **Run workflow**.
+6. Optional, for Discord notifications from this instance: **Settings →
+   Secrets and variables → Actions → New repository secret**, name
+   `DISCORD_WEBHOOK_URL`, value your webhook URL. It's encrypted at rest
+   and never shown in logs. Skip this and notifications are just silently
+   off for the cloud instance.
 
 The seed strategy for this instance is set in
 `.github/workflows/paper_trade.yml` (`--strategy` / `--params` on the "Run
@@ -194,6 +229,20 @@ that resumes from whatever's already active.
 - Every commit is public: the code, the trade history, the numbers. Nothing
   sensitive given the simulated broker, but worth knowing.
 
+## Running the tests
+
+```bash
+pytest tests/ -v
+```
+
+Covers the backtest engine's no-lookahead/cost logic, the simulated
+broker's P&L bookkeeping (open/close/blend/flip-through-zero), the
+walk-forward fold math, the resume-vs-seed and retune-timer logic that
+`--once` mode depends on, position sizing, and dashboard stats. Not
+covered: the actual OANDA/Yahoo Finance network calls, or the GitHub
+Actions workflow itself (those need real runs to verify, per the smoke
+tests done in this project's development).
+
 ## Project layout
 
 ```
@@ -208,6 +257,8 @@ live/oanda_client.py      optional real OANDA demo-account backend
 live/paper_trader.py      polling loop: signal -> order -> log
 live/auto_retune.py       periodic re-search + guardrails, called from paper_trader.py
 live/learn_log.py         writes learn/ plain-file snapshots of re-tune decisions
+live/position_sizing.py   fixed vs volatility(ATR)-based unit sizing
+live/notify.py            optional Discord webhook notifications (trade fills, re-tunes)
 storage/db.py             SQLite: trades, equity snapshots, bot status, retune history
 learn/                    plain-file record of what the bot has picked and why (see learn/README.md)
 dashboard/                FastAPI API + static dashboard page (local instance)
@@ -215,6 +266,7 @@ docs/                     static dashboard page for GitHub Pages (cloud instance
 export_dashboard_data.py  writes docs/data/*.json from the DB, for the static dashboard
 .github/workflows/        scheduled "run one tick, commit state" workflow (see step 7 above)
 scripts/                  Windows auto-start at login (see scripts/README.md)
+tests/                    pytest suite -- see "Running the tests" below
 run_backtest.py           CLI
 run_optimize.py           CLI
 run_paper_trader.py       CLI (--once for a single cron-driven tick)
@@ -234,3 +286,6 @@ run_paper_trader.py       CLI (--once for a single cron-driven tick)
 - Auto re-tuning is parameter search on a timer with guardrails, not machine
   learning — there's no model, and nothing carries knowledge forward between
   cycles beyond "did the last pick clear the bar."
+- Volatility-based position sizing controls how big the next trade is, not
+  how much a single bad move can cost — there's no real stop-loss order
+  behind it.
