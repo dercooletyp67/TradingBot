@@ -1,0 +1,63 @@
+name: Paper Trade
+
+# Runs the paper trader on a schedule instead of as a long-lived process --
+# GitHub Actions runners are ephemeral, so each run does one check-and-
+# maybe-trade cycle (--once) and commits the updated state back to the repo.
+# See live/paper_trader.py's run_paper_trader_once() and README.md.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: paper-trade
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  # Keeps this instance's state separate from any local desktop instance's
+  # storage/tradingbot.db + learn/ -- see config.py.
+  TRADINGBOT_DB_PATH: storage/cloud_tradingbot.db
+  TRADINGBOT_LEARN_DIR: learn_cloud
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      # Edit the strategy/params/instrument here to change the initial
+      # seed -- only matters on the very first-ever run; every run after
+      # that resumes from whatever's already persisted (including
+      # whatever auto-retune has since switched to).
+      - name: Run one paper-trader tick
+        run: >
+          python run_paper_trader.py --once
+          --strategy rsi_reversion --params period=21,oversold=20,overbought=80
+          --instrument EUR_USD --granularity H1
+          --auto-retune-hours 6 --retune-search grid
+
+      - name: Export dashboard data
+        run: python export_dashboard_data.py
+
+      - name: Commit and push updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add storage/cloud_tradingbot.db learn_cloud docs/data
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Bot tick: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push
+          fi

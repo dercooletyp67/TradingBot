@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TradingBot Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e6e8ec;
+    --muted: #8a90a2;
+    --green: #3ddc97;
+    --red: #ff5c72;
+    --accent: #5b8def;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.running { background: var(--green); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .card .value { font-size: 22px; font-weight: 600; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .panel h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>TradingBot Dashboard</h1>
+  <div class="subtitle" id="subtitle">Paper trading (demo account) &mdash; no real money at risk</div>
+  <span class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">loading...</span></span>
+
+  <div class="grid" id="statsGrid"></div>
+
+  <div class="panel">
+    <h2>Equity Curve</h2>
+    <canvas id="equityChart" height="90"></canvas>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Trades</h2>
+    <div id="tradesContainer"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Auto Re-tune History</h2>
+    <div id="retunesContainer"></div>
+  </div>
+
+<script>
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+function fmtMoney(v) {
+  if (v === null || v === undefined) return "&mdash;";
+  return "$" + Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return "&mdash;";
+  const cls = v >= 0 ? "pos" : "neg";
+  return `<span class="${cls}">${v >= 0 ? "+" : ""}${v.toFixed(2)}%</span>`;
+}
+
+let chart;
+
+async function refresh() {
+  const [status, stats, equity, trades, retunes] = await Promise.all([
+    fetchJSON("/api/status"),
+    fetchJSON("/api/stats"),
+    fetchJSON("/api/equity"),
+    fetchJSON("/api/trades"),
+    fetchJSON("/api/retunes"),
+  ]);
+
+  const dot = document.getElementById("statusDot");
+  const text = document.getElementById("statusText");
+  if (status.running) {
+    dot.classList.add("running");
+    text.textContent = `Running — ${status.strategy || "?"} on ${status.instrument || "?"}`;
+  } else {
+    dot.classList.remove("running");
+    text.textContent = "Stopped";
+  }
+
+  document.getElementById("statsGrid").innerHTML = `
+    <div class="card"><div class="label">Balance</div><div class="value">${fmtMoney(stats.current_balance)}</div></div>
+    <div class="card"><div class="label">Total Return</div><div class="value">${fmtPct(stats.total_return_pct)}</div></div>
+    <div class="card"><div class="label">Max Drawdown</div><div class="value">${fmtPct(stats.max_drawdown_pct)}</div></div>
+    <div class="card"><div class="label">Trades</div><div class="value">${stats.num_trades ?? 0}</div></div>
+    <div class="card"><div class="label">Win Rate</div><div class="value">${(stats.win_rate_pct ?? 0).toFixed(1)}%</div></div>
+  `;
+
+  const labels = equity.map(e => new Date(e.timestamp).toLocaleString());
+  const values = equity.map(e => e.balance + e.unrealized_pnl);
+
+  if (!chart) {
+    const ctx = document.getElementById("equityChart").getContext("2d");
+    chart = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [{ label: "Equity", data: values, borderColor: "#5b8def", backgroundColor: "rgba(91,141,239,0.1)", fill: true, tension: 0.15, pointRadius: 0 }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#8a90a2", maxTicksLimit: 8 }, grid: { color: "#262b36" } },
+          y: { ticks: { color: "#8a90a2" }, grid: { color: "#262b36" } },
+        },
+      },
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    chart.update();
+  }
+
+  const container = document.getElementById("tradesContainer");
+  if (!trades.length) {
+    container.innerHTML = '<div class="empty">No trades yet.</div>';
+  } else {
+    const rows = trades.map(t => `
+      <tr>
+        <td>${new Date(t.timestamp).toLocaleString()}</td>
+        <td>${t.instrument}</td>
+        <td style="color:${t.side === 'buy' ? '#3ddc97' : '#ff5c72'}">${t.side.toUpperCase()}</td>
+        <td>${t.units}</td>
+        <td>${t.price}</td>
+        <td>${t.pnl != null ? fmtMoney(t.pnl) : "&mdash;"}</td>
+      </tr>`).join("");
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Time</th><th>Instrument</th><th>Side</th><th>Units</th><th>Price</th><th>PnL</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  const retuneContainer = document.getElementById("retunesContainer");
+  if (!retunes.length) {
+    retuneContainer.innerHTML = '<div class="empty">No re-tune cycles yet. Enable with --auto-retune-hours.</div>';
+  } else {
+    const rows = retunes.map(r => {
+      const oldLabel = r.old_strategy ? `${r.old_strategy}${r.old_params_json}` : "&mdash;";
+      const newLabel = `${r.new_strategy}${r.new_params_json}`;
+      const changedLabel = r.changed
+        ? `<span class="pos">switched</span>`
+        : `<span style="color:var(--muted)">kept current</span>`;
+      const sharpe = r.mean_test_sharpe != null ? r.mean_test_sharpe.toFixed(2) : "&mdash;";
+      const gap = r.overfit_gap != null ? r.overfit_gap.toFixed(2) : "&mdash;";
+      return `
+        <tr>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td>${changedLabel}</td>
+          <td style="font-size:12px">${oldLabel}</td>
+          <td style="font-size:12px">${newLabel}</td>
+          <td>${sharpe}</td>
+          <td>${gap}</td>
+        </tr>`;
+    }).join("");
+    retuneContainer.innerHTML = `
+      <table>
+        <thead><tr><th>Time</th><th>Result</th><th>Old</th><th>New</th><th>OOS Sharpe</th><th>Overfit Gap</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
