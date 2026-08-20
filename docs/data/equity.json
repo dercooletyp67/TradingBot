@@ -510,5 +510,13 @@
     "instrument": "EUR_USD",
     "balance": 10227.512145421792,
     "unrealized_pnl": -54.76571810624581
+  },
+  {
+    "id": 65,
+    "timestamp": "2026-08-20T18:53:23.038259",
+    "strategy": "rsi_reversion",
+    "instrument": "EUR_USD",
+    "balance": 10227.512145421792,
+    "unrealized_pnl": -62.73047614804369
   }
 ]
