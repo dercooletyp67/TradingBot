@@ -1,5 +1,16 @@
 [
   {
+    "id": 14,
+    "timestamp": "2026-08-22T09:26:46.652197",
+    "old_strategy": "rsi_reversion",
+    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "new_strategy": "rsi_reversion",
+    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "mean_test_sharpe": 2.159964514608325,
+    "overfit_gap": -0.7470459796020912,
+    "changed": 0
+  },
+  {
     "id": 13,
     "timestamp": "2026-08-22T02:35:33.113640",
     "old_strategy": "rsi_reversion",
