@@ -1,8 +1,8 @@
 {
-  "current_balance": 10112.376454557047,
+  "current_balance": 10100.087219599822,
   "starting_balance": 10000.0,
-  "total_return_pct": 1.1237645455704603,
+  "total_return_pct": 1.0008721959982259,
   "max_drawdown_pct": -4.461064298317452,
-  "num_trades": 67,
-  "win_rate_pct": 4.477611940298507
+  "num_trades": 68,
+  "win_rate_pct": 4.411764705882353
 }
