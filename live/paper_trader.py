@@ -87,13 +87,21 @@ def _tick(client, strategy, active_strategy_name, active_params, instrument, gra
     signal = strategy.generate_signals(df, **active_params)
     desired_signal = int(signal.iloc[-1])
 
-    account = client.get_account_summary()
-    balance = float(account["balance"])
-    units = compute_units(df, balance, position_sizing)
-    desired_units = desired_signal * units
-
     current_units = client.get_open_units(instrument)
-    delta = desired_units - current_units
+    current_direction = 0 if current_units == 0 else (1 if current_units > 0 else -1)
+
+    delta = 0
+    if desired_signal != current_direction:
+        # Only a real direction change (flat->open, or a flip) re-sizes the
+        # position. Recomputing size every tick from the latest ATR/balance
+        # -- even while the strategy's direction hasn't moved at all -- was
+        # producing a stream of tiny rebalancing trades with pnl=0 that
+        # inflated the trade count and skewed win-rate stats.
+        account = client.get_account_summary()
+        balance = float(account["balance"])
+        units = compute_units(df, balance, position_sizing)
+        desired_units = desired_signal * units
+        delta = desired_units - current_units
 
     if delta != 0:
         resp = client.place_market_order(instrument, delta)
