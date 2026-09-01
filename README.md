@@ -128,18 +128,34 @@ sizes each trade so that a move of `--atr-multiplier` (default 1.5) times
 the Average True Range against the position costs roughly `--risk-pct`
 (default 1%) of the account balance — bigger positions in calm markets,
 smaller ones in choppy markets, so *dollar risk per trade* stays roughly
-constant instead of *unit count*.
+constant instead of *unit count*. It also caps every position between
+`--min-notional` (default $50, skip positions too small to bother with) and
+`--max-notional-pct` (default 0.5 = never more than half the account in one
+position) — expressed as account-currency **value**, not raw unit count,
+since "1 unit" means wildly different things across instruments (1 unit of
+EUR_USD is ~$1, 1 unit of BTC-USD is ~$78,000+; an early version of this
+bounded by raw unit count and could size a position at hundreds of times
+the account's value on a high-priced asset before this was caught and
+fixed).
 
 ```bash
 python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
     --instrument EUR_USD --granularity H1 --position-sizing volatility --risk-pct 0.01
 ```
 
+Position sizes are fractional (e.g. 0.06 BTC), not whole-unit-only — a
+whole-unit floor is harmless for forex but would make any sane risk-sized
+position on a high-priced asset impossible at retail account sizes. The
+simulated broker supports fractional units; the real OANDA broker rounds to
+whole units when actually placing the order, since OANDA doesn't accept
+fractional units for forex/CFDs (not a practical issue there since OANDA
+doesn't offer crypto anyway).
+
 This only sizes the next trade — it doesn't place a real stop-loss order,
 so an unusually large single move can still cost more than the risk
 budget. See `live/position_sizing.py` for the full caveats (it also assumes
 the account currency equals the pair's quote currency, which is exactly
-true for EUR_USD/USD but an approximation for other pairs).
+true for EUR_USD/USD and BTC_USD but an approximation for other pairs).
 
 ### Notifications
 
@@ -229,6 +245,41 @@ that resumes from whatever's already active.
 - Every commit is public: the code, the trade history, the numbers. Nothing
   sensitive given the simulated broker, but worth knowing.
 
+## 8. Trading multiple instruments in parallel
+
+Nothing in this project is forex-specific — `data/fetch.py`'s Yahoo Finance
+source already handles crypto tickers directly (`BTC-USD`, `ETH-USD`, ...)
+with zero code changes, and every strategy is a generic technical
+indicator that works on any OHLC data. The bundled BTC-USD instance is a
+**fully separate, independent bot** from the EUR/USD one — own state, own
+starting balance, own dashboard — following the same pattern as the
+local/cloud split:
+
+| | EUR/USD | BTC-USD |
+|---|---|---|
+| Local dashboard | :8000 | :8001 |
+| Local start script | `scripts/start_tradingbot.ps1` | `scripts/start_tradingbot_btc.ps1` |
+| Cloud workflow | `.github/workflows/paper_trade.yml` | `.github/workflows/paper_trade_btc.yml` |
+| Cloud dashboard page | `docs/index.html` | `docs/btc.html` |
+| Cloud state files | `storage/cloud_tradingbot.db`, `learn_cloud/`, `docs/data/` | `storage/cloud_tradingbot_btc.db`, `learn_cloud_btc/`, `docs/data-btc/` |
+
+The two cloud workflows share the same GitHub repo/branch, so their
+schedules are offset (`:00`/`:30` vs `:15`/`:45`) and their push steps
+retry-with-rebase, to avoid one occasionally clobbering the other's push.
+
+**Adding another instrument** (a different crypto pair, or a commodity —
+Yahoo Finance also has futures like `GC=F` for gold, `CL=F` for crude oil):
+copy the local start/stop scripts and the cloud workflow YAML for BTC,
+rename their `TRADINGBOT_DB_PATH`/`TRADINGBOT_LEARN_DIR`/
+`TRADINGBOT_DOCS_SUBDIR` values and dashboard port so they don't collide
+with an existing instance, and run `run_optimize.py --instrument
+<your-instrument>` first to pick a sane seed strategy rather than guessing.
+
+Worth saying plainly: adding more instruments is a good way to see whether
+an edge shows up **anywhere**, but it doesn't by itself make any of them
+more likely to be profitable — it's the same experiment run in parallel,
+not a different, better one.
+
 ## Running the tests
 
 ```bash
@@ -261,11 +312,11 @@ live/position_sizing.py   fixed vs volatility(ATR)-based unit sizing
 live/notify.py            optional Discord webhook notifications (trade fills, re-tunes)
 storage/db.py             SQLite: trades, equity snapshots, bot status, retune history
 learn/                    plain-file record of what the bot has picked and why (see learn/README.md)
-dashboard/                FastAPI API + static dashboard page (local instance)
-docs/                     static dashboard page for GitHub Pages (cloud instance)
-export_dashboard_data.py  writes docs/data/*.json from the DB, for the static dashboard
-.github/workflows/        scheduled "run one tick, commit state" workflow (see step 7 above)
-scripts/                  Windows auto-start at login (see scripts/README.md)
+dashboard/                FastAPI API + static dashboard page (local EUR/USD instance; BTC-USD reuses this on port 8001)
+docs/                     static dashboard pages for GitHub Pages (index.html = EUR/USD, btc.html = BTC-USD)
+export_dashboard_data.py  writes docs/<subdir>/*.json from the DB, for a static dashboard page
+.github/workflows/        scheduled "run one tick, commit state" workflows, one per instrument (see steps 7-8 above)
+scripts/                  Windows auto-start at login, one pair of scripts per instrument (see scripts/README.md)
 tests/                    pytest suite -- see "Running the tests" below
 run_backtest.py           CLI
 run_optimize.py           CLI

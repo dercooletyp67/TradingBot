@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>TradingBot Dashboard</title>
+<title>TradingBot Dashboard - BTC (cloud)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -13,6 +13,7 @@
     --muted: #8a90a2;
     --green: #3ddc97;
     --red: #ff5c72;
+    --amber: #e0b34d;
     --accent: #5b8def;
   }
   * { box-sizing: border-box; }
@@ -32,6 +33,7 @@
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
   .dot.running { background: var(--green); }
+  .dot.stale { background: var(--amber); }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -60,12 +62,18 @@
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 500; }
   .empty { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .nav { margin-bottom: 12px; }
+  .nav a { color: var(--accent); font-size: 13px; text-decoration: none; }
+  .nav a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-  <h1>TradingBot Dashboard</h1>
-  <div class="subtitle" id="subtitle">Paper trading (demo account) &mdash; no real money at risk</div>
+  <div class="nav"><a href="index.html">&larr; View EUR/USD instance</a></div>
+  <h1>TradingBot Dashboard &mdash; BTC/USD</h1>
+  <div class="subtitle">Paper trading, run on a schedule by GitHub Actions &mdash; no real money at risk, no broker account</div>
   <span class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">loading...</span></span>
+  <div class="note" id="heartbeatNote"></div>
 
   <div class="grid" id="statsGrid"></div>
 
@@ -85,8 +93,14 @@
   </div>
 
 <script>
+// Data refreshes only when the scheduled GitHub Actions run pushes a new
+// commit -- typically every 30 min, see .github/workflows/paper_trade_btc.yml.
+// Re-fetching more often than that just re-reads the same files.
+const STALE_AFTER_MINUTES = 90;
+
 async function fetchJSON(url) {
-  const r = await fetch(url);
+  const r = await fetch(url + "?_=" + Date.now());
+  if (!r.ok) throw new Error(`${url}: ${r.status}`);
   return r.json();
 }
 
@@ -111,22 +125,44 @@ function fmtPct(v) {
 let chart;
 
 async function refresh() {
-  const [status, stats, equity, trades, retunes] = await Promise.all([
-    fetchJSON("/api/status"),
-    fetchJSON("/api/stats"),
-    fetchJSON("/api/equity"),
-    fetchJSON("/api/trades"),
-    fetchJSON("/api/retunes"),
-  ]);
+  let status, stats, equity, trades, retunes;
+  try {
+    [status, stats, equity, trades, retunes] = await Promise.all([
+      fetchJSON("data-btc/status.json"),
+      fetchJSON("data-btc/stats.json"),
+      fetchJSON("data-btc/equity.json"),
+      fetchJSON("data-btc/trades.json"),
+      fetchJSON("data-btc/retunes.json"),
+    ]);
+  } catch (e) {
+    document.getElementById("statusText").textContent = "Waiting for first scheduled run...";
+    document.getElementById("heartbeatNote").textContent =
+      "No data published yet -- the GitHub Actions workflow hasn't completed its first tick.";
+    return;
+  }
 
   const dot = document.getElementById("statusDot");
   const text = document.getElementById("statusText");
-  if (status.running) {
-    dot.classList.add("running");
-    text.textContent = `Running — ${status.strategy || "?"} on ${status.instrument || "?"}`;
+  const note = document.getElementById("heartbeatNote");
+
+  const lastHeartbeat = status.last_heartbeat ? new Date(status.last_heartbeat + "Z") : null;
+  const minutesSince = lastHeartbeat ? (Date.now() - lastHeartbeat.getTime()) / 60000 : null;
+  const isStale = minutesSince === null || minutesSince > STALE_AFTER_MINUTES;
+
+  if (!status.strategy) {
+    dot.className = "dot";
+    text.textContent = "Not started yet";
+    note.textContent = "";
+  } else if (isStale) {
+    dot.className = "dot stale";
+    text.textContent = `Stale — ${status.strategy} on ${status.instrument}`;
+    note.textContent = lastHeartbeat
+      ? `Last tick ${lastHeartbeat.toLocaleString()} (${Math.round(minutesSince)} min ago) — scheduled run may be delayed or paused.`
+      : "No heartbeat recorded yet.";
   } else {
-    dot.classList.remove("running");
-    text.textContent = "Stopped";
+    dot.className = "dot running";
+    text.textContent = `Active — ${status.strategy} on ${status.instrument}`;
+    note.textContent = `Last tick ${lastHeartbeat.toLocaleString()} (${Math.round(minutesSince)} min ago)`;
   }
 
   document.getElementById("statsGrid").innerHTML = `
@@ -137,7 +173,7 @@ async function refresh() {
     <div class="card"><div class="label">Win Rate</div><div class="value">${(stats.win_rate_pct ?? 0).toFixed(1)}%</div></div>
   `;
 
-  const labels = equity.map(e => new Date(e.timestamp).toLocaleString());
+  const labels = equity.map(e => new Date(e.timestamp + "Z").toLocaleString());
   const values = equity.map(e => e.balance + e.unrealized_pnl);
 
   if (!chart) {
@@ -166,7 +202,7 @@ async function refresh() {
   } else {
     const rows = trades.map(t => `
       <tr>
-        <td>${new Date(t.timestamp).toLocaleString()}</td>
+        <td>${new Date(t.timestamp + "Z").toLocaleString()}</td>
         <td>${t.instrument}</td>
         <td style="color:${t.side === 'buy' ? '#3ddc97' : '#ff5c72'}">${t.side.toUpperCase()}</td>
         <td>${fmtUnits(t.units)}</td>
@@ -182,7 +218,7 @@ async function refresh() {
 
   const retuneContainer = document.getElementById("retunesContainer");
   if (!retunes.length) {
-    retuneContainer.innerHTML = '<div class="empty">No re-tune cycles yet. Enable with --auto-retune-hours.</div>';
+    retuneContainer.innerHTML = '<div class="empty">No re-tune cycles yet.</div>';
   } else {
     const rows = retunes.map(r => {
       const oldLabel = r.old_strategy ? `${r.old_strategy}${r.old_params_json}` : "&mdash;";
@@ -194,7 +230,7 @@ async function refresh() {
       const gap = r.overfit_gap != null ? r.overfit_gap.toFixed(2) : "&mdash;";
       return `
         <tr>
-          <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td>${new Date(r.timestamp + "Z").toLocaleString()}</td>
           <td>${changedLabel}</td>
           <td style="font-size:12px">${oldLabel}</td>
           <td style="font-size:12px">${newLabel}</td>
@@ -211,7 +247,7 @@ async function refresh() {
 }
 
 refresh();
-setInterval(refresh, 5000);
+setInterval(refresh, 30000);
 </script>
 </body>
 </html>

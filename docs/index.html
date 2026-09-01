@@ -63,10 +63,14 @@
   th { color: var(--muted); font-weight: 500; }
   .empty { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
   .note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .nav { margin-bottom: 12px; }
+  .nav a { color: var(--accent); font-size: 13px; text-decoration: none; }
+  .nav a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-  <h1>TradingBot Dashboard</h1>
+  <div class="nav"><a href="btc.html">View BTC-USD instance &rarr;</a></div>
+  <h1>TradingBot Dashboard &mdash; EUR/USD</h1>
   <div class="subtitle">Paper trading, run on a schedule by GitHub Actions &mdash; no real money at risk, no broker account</div>
   <span class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">loading...</span></span>
   <div class="note" id="heartbeatNote"></div>
@@ -103,6 +107,13 @@ async function fetchJSON(url) {
 function fmtMoney(v) {
   if (v === null || v === undefined) return "&mdash;";
   return "$" + Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function fmtUnits(v) {
+  if (v === null || v === undefined) return "&mdash;";
+  // trims to 6 decimals and drops trailing zeros -- raw floats from
+  // fractional crypto sizing are otherwise 15+ digits long.
+  return Number(v).toFixed(6).replace(/\.?0+$/, "");
 }
 
 function fmtPct(v) {
@@ -194,7 +205,7 @@ async function refresh() {
         <td>${new Date(t.timestamp + "Z").toLocaleString()}</td>
         <td>${t.instrument}</td>
         <td style="color:${t.side === 'buy' ? '#3ddc97' : '#ff5c72'}">${t.side.toUpperCase()}</td>
-        <td>${t.units}</td>
+        <td>${fmtUnits(t.units)}</td>
         <td>${t.price}</td>
         <td>${t.pnl != null ? fmtMoney(t.pnl) : "&mdash;"}</td>
       </tr>`).join("");

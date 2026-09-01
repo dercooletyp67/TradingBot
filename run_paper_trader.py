@@ -55,8 +55,15 @@ def main():
     ap.add_argument("--risk-pct", type=float, default=0.01, help="fraction of balance risked per trade, volatility sizing only")
     ap.add_argument("--atr-period", type=int, default=14)
     ap.add_argument("--atr-multiplier", type=float, default=1.5)
-    ap.add_argument("--min-units", type=int, default=100)
-    ap.add_argument("--max-units", type=int, default=100_000)
+    ap.add_argument(
+        "--min-notional", type=float, default=50.0,
+        help="smallest position value worth opening, in account currency (volatility sizing only)",
+    )
+    ap.add_argument(
+        "--max-notional-pct", type=float, default=0.5,
+        help="largest position value as a fraction of balance, e.g. 0.5 = never more than half the "
+        "account in one position (volatility sizing only)",
+    )
     ap.add_argument("--broker", choices=["simulated", "oanda"], default="simulated")
     ap.add_argument("--starting-balance", type=float, default=10_000.0, help="simulated broker only")
 
@@ -89,8 +96,8 @@ def main():
         risk_pct=args.risk_pct,
         atr_period=args.atr_period,
         atr_multiplier=args.atr_multiplier,
-        min_units=args.min_units,
-        max_units=args.max_units,
+        min_notional=args.min_notional,
+        max_notional_pct=args.max_notional_pct,
     )
 
     common_kwargs = dict(

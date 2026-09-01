@@ -4,14 +4,17 @@ __pycache__/
 .env
 logs/
 scripts/tradingbot.pids
+scripts/tradingbot_btc.pids
 
-# Local desktop instance's state -- not tracked, stays on this machine only.
+# Local desktop instances' state -- not tracked, stays on this machine only.
 storage/*.db
 learn/current_strategy.json
 learn/history.jsonl
+learn_btc/
 
-# The cloud instance's state (storage/cloud_tradingbot.db, learn_cloud/,
-# docs/data/) IS tracked -- GitHub Actions commits it back after every tick
-# so state survives between ephemeral runner instances. See
-# .github/workflows/paper_trade.yml.
+# The cloud instances' state (storage/cloud_tradingbot.db, learn_cloud/,
+# docs/data/, and the BTC-USD equivalents) IS tracked -- GitHub Actions
+# commits it back after every tick so state survives between ephemeral
+# runner instances. See .github/workflows/paper_trade*.yml.
 !storage/cloud_tradingbot.db
+!storage/cloud_tradingbot_btc.db

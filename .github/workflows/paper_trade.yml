@@ -63,7 +63,16 @@ jobs:
           git add storage/cloud_tradingbot.db learn_cloud docs/data
           if git diff --cached --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "Bot tick: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            git push
+            exit 0
           fi
+          git commit -m "Bot tick: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          # A second workflow (BTC instance) shares this branch, so a push
+          # can occasionally get rejected as non-fast-forward -- rebase and
+          # retry rather than losing this tick.
+          for i in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "Push rejected, pulling and retrying ($i)..."
+            git pull --rebase origin main
+          done
+          echo "Failed to push after retries" >&2
+          exit 1

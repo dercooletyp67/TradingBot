@@ -89,7 +89,7 @@ def record_trade(
     strategy: str,
     instrument: str,
     side: str,
-    units: int,
+    units: float,
     price: float,
     pnl: float | None = None,
     oanda_order_id: str | None = None,

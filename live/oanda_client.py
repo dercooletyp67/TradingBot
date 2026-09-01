@@ -60,13 +60,17 @@ class OandaClient:
             )
         return pd.DataFrame(rows).set_index("time")
 
-    def place_market_order(self, instrument: str, units: int) -> dict:
-        """units > 0 buys, units < 0 sells."""
+    def place_market_order(self, instrument: str, units: float) -> dict:
+        """units > 0 buys, units < 0 sells. Rounded to a whole number --
+        real OANDA forex/CFD instruments don't accept fractional units,
+        unlike the simulated broker (which needs fractions for high-priced
+        assets like BTC-USD; not a concern here since OANDA doesn't offer
+        crypto anyway)."""
         body = {
             "order": {
                 "type": "MARKET",
                 "instrument": instrument,
-                "units": str(units),
+                "units": str(round(units)),
                 "timeInForce": "FOK",
                 "positionFill": "DEFAULT",
             }
