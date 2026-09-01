@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "strategy": "rsi_reversion",
+  "instrument": "BTC-USD",
+  "params_json": "{\"period\": 7, \"oversold\": 25, \"overbought\": 80}",
+  "running": 1,
+  "last_heartbeat": "2026-09-01T16:55:11.910857",
+  "sim_balance": 10000.0,
+  "sim_position_units": 0.0644145981193353,
+  "sim_entry_price": 77637.68068125,
+  "last_retune_at": "2026-09-01T16:55:10.196007"
+}

@@ -1,0 +1,12 @@
+{
+  "strategy": "rsi_reversion",
+  "params": {
+    "period": 7,
+    "oversold": 25,
+    "overbought": 80
+  },
+  "source": "seed",
+  "mean_test_sharpe": null,
+  "overfit_gap": null,
+  "updated_at": "2026-09-01T16:55:10.195877"
+}
