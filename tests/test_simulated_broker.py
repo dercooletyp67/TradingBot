@@ -100,3 +100,50 @@ def test_starting_balance_only_applied_once(temp_db, mock_price):
     broker1.place_market_order("EUR_USD", 1000)
     broker2 = SimulatedBroker("EUR_USD", "H1", starting_balance=5_000.0)
     assert broker2.get_open_units("EUR_USD") == 1000
+
+
+@pytest.fixture
+def mock_volatile_price(monkeypatch):
+    """Like mock_price, but with a controllable high-low spread each bar,
+    so ATR (and therefore volatility-scaled slippage) is nonzero."""
+    state = {"price": 1.1000, "spread": 0.0}
+
+    def fake_fetch(instrument, granularity, count):
+        index = pd.date_range("2024-01-01", periods=count, freq="h")
+        price, spread = state["price"], state["spread"]
+        return pd.DataFrame(
+            {
+                "open": price, "close": price,
+                "high": price + spread / 2, "low": price - spread / 2,
+            },
+            index=index,
+        )
+
+    monkeypatch.setattr("live.simulated_broker.fetch_yfinance_candles", fake_fetch)
+    return state
+
+
+def test_spread_cost_widens_with_recent_volatility(temp_db, mock_volatile_price):
+    calm = SimulatedBroker("EUR_USD", "H1", starting_balance=10_000.0, spread_bps=2.0, slippage_atr_multiplier=0.5)
+    mock_volatile_price["price"] = 1.1000
+    mock_volatile_price["spread"] = 0.0  # zero ATR -- pure base spread
+    calm_fill = calm.place_market_order("EUR_USD", 1000)["orderFillTransaction"]["price"]
+
+    volatile = SimulatedBroker("EUR_USD", "H1", starting_balance=10_000.0, spread_bps=2.0, slippage_atr_multiplier=0.5)
+    mock_volatile_price["price"] = 1.1000
+    mock_volatile_price["spread"] = 0.01  # noticeable ATR now
+    volatile_fill = volatile.place_market_order("EUR_USD", 1000)["orderFillTransaction"]["price"]
+
+    # both are buys (fill above mid), but the volatile one should pay more
+    calm_cost = calm_fill - 1.1000
+    volatile_cost = volatile_fill - 1.1000
+    assert volatile_cost > calm_cost
+
+
+def test_zero_slippage_multiplier_ignores_volatility(temp_db, mock_volatile_price):
+    broker = SimulatedBroker("EUR_USD", "H1", starting_balance=10_000.0, spread_bps=2.0, slippage_atr_multiplier=0.0)
+    mock_volatile_price["price"] = 1.1000
+    mock_volatile_price["spread"] = 0.05  # large ATR, but multiplier is 0
+    fill_price = broker.place_market_order("EUR_USD", 1000)["orderFillTransaction"]["price"]
+    expected = 1.1000 * (1 + 2.0 / 10_000.0)  # base spread only
+    assert fill_price == pytest.approx(expected, rel=1e-6)

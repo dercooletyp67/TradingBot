@@ -40,7 +40,11 @@ CREATE TABLE IF NOT EXISTS bot_status (
     sim_balance REAL NOT NULL DEFAULT 0,
     sim_position_units REAL NOT NULL DEFAULT 0,
     sim_entry_price REAL NOT NULL DEFAULT 0,
-    last_retune_at TEXT
+    last_retune_at TEXT,
+    peak_equity REAL NOT NULL DEFAULT 0,
+    trading_halted INTEGER NOT NULL DEFAULT 0,
+    halted_at TEXT,
+    halted_reason TEXT
 );
 
 CREATE TABLE IF NOT EXISTS retune_events (
@@ -52,7 +56,10 @@ CREATE TABLE IF NOT EXISTS retune_events (
     new_params_json TEXT NOT NULL,
     mean_test_sharpe REAL,
     overfit_gap REAL,
-    changed INTEGER NOT NULL DEFAULT 0
+    changed INTEGER NOT NULL DEFAULT 0,
+    n_trials INTEGER,
+    expected_max_null REAL,
+    clears_null_bar INTEGER
 );
 """
 
@@ -69,11 +76,25 @@ def init_db() -> None:
         conn.executescript(SCHEMA)
         conn.execute("INSERT OR IGNORE INTO bot_status (id, running) VALUES (1, 0)")
         existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(bot_status)")}
-        for col, default in (("sim_balance", 0), ("sim_position_units", 0), ("sim_entry_price", 0)):
+        for col, default in (
+            ("sim_balance", 0), ("sim_position_units", 0), ("sim_entry_price", 0), ("peak_equity", 0),
+        ):
             if col not in existing_cols:
                 conn.execute(f"ALTER TABLE bot_status ADD COLUMN {col} REAL NOT NULL DEFAULT {default}")
         if "last_retune_at" not in existing_cols:
             conn.execute("ALTER TABLE bot_status ADD COLUMN last_retune_at TEXT")
+        if "trading_halted" not in existing_cols:
+            conn.execute("ALTER TABLE bot_status ADD COLUMN trading_halted INTEGER NOT NULL DEFAULT 0")
+        if "halted_at" not in existing_cols:
+            conn.execute("ALTER TABLE bot_status ADD COLUMN halted_at TEXT")
+        if "halted_reason" not in existing_cols:
+            conn.execute("ALTER TABLE bot_status ADD COLUMN halted_reason TEXT")
+
+        existing_retune_cols = {row[1] for row in conn.execute("PRAGMA table_info(retune_events)")}
+        for col in ("n_trials", "expected_max_null", "clears_null_bar"):
+            if col not in existing_retune_cols:
+                col_type = "INTEGER" if col in ("n_trials", "clears_null_bar") else "REAL"
+                conn.execute(f"ALTER TABLE retune_events ADD COLUMN {col} {col_type}")
 
 
 def record_equity_snapshot(strategy: str, instrument: str, balance: float, unrealized_pnl: float = 0.0) -> None:
@@ -147,6 +168,41 @@ def set_last_retune_at(timestamp_iso: str) -> None:
         conn.execute("UPDATE bot_status SET last_retune_at=? WHERE id=1", (timestamp_iso,))
 
 
+def get_peak_equity() -> float:
+    with get_conn() as conn:
+        row = conn.execute("SELECT peak_equity FROM bot_status WHERE id=1").fetchone()
+        return row["peak_equity"] if row else 0.0
+
+
+def set_peak_equity(value: float) -> None:
+    with get_conn() as conn:
+        conn.execute("UPDATE bot_status SET peak_equity=? WHERE id=1", (value,))
+
+
+def halt_trading(reason: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE bot_status SET trading_halted=1, halted_at=?, halted_reason=? WHERE id=1",
+            (dt.datetime.utcnow().isoformat(), reason),
+        )
+
+
+def resume_trading() -> None:
+    """Manually clears the kill switch -- does not reset peak_equity, so
+    drawdown is still measured from the same all-time high unless you also
+    call set_peak_equity() to a fresh value."""
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE bot_status SET trading_halted=0, halted_at=NULL, halted_reason=NULL WHERE id=1"
+        )
+
+
+def is_trading_halted() -> bool:
+    with get_conn() as conn:
+        row = conn.execute("SELECT trading_halted FROM bot_status WHERE id=1").fetchone()
+        return bool(row["trading_halted"]) if row else False
+
+
 def get_bot_status() -> dict:
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM bot_status WHERE id=1").fetchone()
@@ -175,12 +231,16 @@ def record_retune_event(
     mean_test_sharpe: float | None,
     overfit_gap: float | None,
     changed: bool,
+    n_trials: int | None = None,
+    expected_max_null: float | None = None,
+    clears_null_bar: bool | None = None,
 ) -> None:
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO retune_events "
             "(timestamp, old_strategy, old_params_json, new_strategy, new_params_json, "
-            "mean_test_sharpe, overfit_gap, changed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "mean_test_sharpe, overfit_gap, changed, n_trials, expected_max_null, clears_null_bar) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 dt.datetime.utcnow().isoformat(),
                 old_strategy,
@@ -190,6 +250,9 @@ def record_retune_event(
                 mean_test_sharpe,
                 overfit_gap,
                 int(changed),
+                n_trials,
+                expected_max_null,
+                None if clears_null_bar is None else int(clears_null_bar),
             ),
         )
 

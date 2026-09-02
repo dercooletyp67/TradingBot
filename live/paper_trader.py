@@ -19,6 +19,10 @@ Whatever strategy/params ends up active (whether the CLI-provided seed or a
 later auto-retune pick) is persisted in bot_status and resumed from there on
 every start -- restarting the process (a reboot, a fresh cron invocation)
 does not throw away what a previous run's auto-retune had settled on.
+
+If --max-drawdown-pct is set, a kill switch flattens the position and halts
+all trading once equity falls that far below its all-time peak, until
+manually cleared with --resume-trading (see live/kill_switch.py).
 """
 from __future__ import annotations
 
@@ -26,14 +30,17 @@ import datetime as dt
 import json
 import time
 
+from live.kill_switch import check_drawdown
 from live.learn_log import append_history, write_current_strategy
-from live.notify import notify_retune, notify_trade
+from live.notify import notify_kill_switch, notify_retune, notify_trade
 from live.position_sizing import PositionSizingConfig, compute_units
 from storage.db import (
     get_bot_status,
     get_last_retune_at,
+    halt_trading,
     heartbeat,
     init_db,
+    is_trading_halted,
     record_equity_snapshot,
     record_retune_event,
     record_trade,
@@ -78,7 +85,34 @@ def _retune_due(auto_retune_hours: float | None) -> bool:
     return elapsed >= auto_retune_hours * 3600
 
 
-def _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing: PositionSizingConfig) -> None:
+def _fill_and_record(client, instrument, active_strategy_name, units_delta) -> None:
+    resp = client.place_market_order(instrument, units_delta)
+    fill = resp.get("orderFillTransaction")
+    if fill:
+        price = float(fill["price"])
+        side = "buy" if units_delta > 0 else "sell"
+        pnl = float(fill.get("pl", 0.0))
+        record_trade(active_strategy_name, instrument, side, abs(units_delta), price, pnl, fill.get("id"))
+        print(f"Filled {side} {abs(units_delta)} units {instrument} @ {price}")
+        notify_trade(active_strategy_name, instrument, side, abs(units_delta), price, pnl)
+    else:
+        print(f"Order not filled: {resp}")
+
+
+def _tick(
+    client, strategy, active_strategy_name, active_params, instrument, granularity,
+    position_sizing: PositionSizingConfig, max_drawdown_pct: float | None = None,
+) -> None:
+    if is_trading_halted():
+        account = client.get_account_summary()
+        record_equity_snapshot(
+            active_strategy_name, instrument,
+            balance=float(account["balance"]), unrealized_pnl=float(account["unrealizedPL"]),
+        )
+        heartbeat()
+        print("Trading halted (kill switch tripped) -- skipping this tick. Run with --resume-trading to clear it.")
+        return
+
     df = client.get_recent_candles(instrument, granularity, count=CANDLE_LOOKBACK)
     if len(df) < 50:
         print("Not enough candle history yet, waiting...")
@@ -104,24 +138,23 @@ def _tick(client, strategy, active_strategy_name, active_params, instrument, gra
         delta = desired_units - current_units
 
     if delta != 0:
-        resp = client.place_market_order(instrument, delta)
-        fill = resp.get("orderFillTransaction")
-        if fill:
-            price = float(fill["price"])
-            side = "buy" if delta > 0 else "sell"
-            pnl = float(fill.get("pl", 0.0))
-            record_trade(active_strategy_name, instrument, side, abs(delta), price, pnl, fill.get("id"))
-            print(f"Filled {side} {abs(delta)} units {instrument} @ {price}")
-            notify_trade(active_strategy_name, instrument, side, abs(delta), price, pnl)
-        else:
-            print(f"Order not filled: {resp}")
+        _fill_and_record(client, instrument, active_strategy_name, delta)
 
     account = client.get_account_summary()
-    record_equity_snapshot(
-        active_strategy_name, instrument,
-        balance=float(account["balance"]), unrealized_pnl=float(account["unrealizedPL"]),
-    )
+    balance = float(account["balance"])
+    unrealized = float(account["unrealizedPL"])
+    record_equity_snapshot(active_strategy_name, instrument, balance=balance, unrealized_pnl=unrealized)
     heartbeat()
+
+    should_halt, drawdown_pct = check_drawdown(balance + unrealized, max_drawdown_pct)
+    if should_halt:
+        open_units = client.get_open_units(instrument)
+        if open_units != 0:
+            _fill_and_record(client, instrument, active_strategy_name, -open_units)
+        reason = f"Drawdown {drawdown_pct:.1f}% exceeded -{max_drawdown_pct:.1f}% limit"
+        halt_trading(reason)
+        print(f"*** TRADING HALTED: {reason} ***")
+        notify_kill_switch(drawdown_pct, max_drawdown_pct)
 
 
 def run_paper_trader(
@@ -140,6 +173,8 @@ def run_paper_trader(
     retune_max_overfit_gap: float = 1.5,
     retune_search_mode: str = "grid",
     retune_max_combos: int | None = None,
+    retune_require_clear_noise_bar: bool = True,
+    max_drawdown_pct: float | None = None,
 ) -> None:
     """Continuous polling loop: stays alive, sleeps between checks. For
     local/desktop use (see scripts/start_tradingbot.ps1)."""
@@ -162,7 +197,10 @@ def run_paper_trader(
     )
     if auto_retune_hours:
         print(f"Auto re-tune enabled: re-searching every {auto_retune_hours}h, guardrails "
-              f"min_oos_sharpe={retune_min_oos_sharpe}, max_overfit_gap={retune_max_overfit_gap}.")
+              f"min_oos_sharpe={retune_min_oos_sharpe}, max_overfit_gap={retune_max_overfit_gap}, "
+              f"require_clear_noise_bar={retune_require_clear_noise_bar}.")
+    if max_drawdown_pct:
+        print(f"Kill switch enabled: halts trading if equity drops {max_drawdown_pct}% below its peak.")
     print("Press Ctrl+C to stop.")
 
     try:
@@ -172,13 +210,17 @@ def run_paper_trader(
                     active_strategy_name, active_params, instrument, granularity,
                     retune_strategies, retune_folds, retune_min_oos_sharpe,
                     retune_max_overfit_gap, retune_search_mode, retune_max_combos,
+                    retune_require_clear_noise_bar,
                 )
                 if new_name != active_strategy_name or new_params != active_params:
                     active_strategy_name, active_params = new_name, new_params
                     strategy = get_strategy(active_strategy_name)
                     set_bot_status(active_strategy_name, instrument, json.dumps(active_params), running=True)
 
-            _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing)
+            _tick(
+                client, strategy, active_strategy_name, active_params, instrument, granularity,
+                position_sizing, max_drawdown_pct,
+            )
             time.sleep(poll_seconds)
     except KeyboardInterrupt:
         print("Stopping paper trader.")
@@ -201,6 +243,8 @@ def run_paper_trader_once(
     retune_max_overfit_gap: float = 1.5,
     retune_search_mode: str = "grid",
     retune_max_combos: int | None = None,
+    retune_require_clear_noise_bar: bool = True,
+    max_drawdown_pct: float | None = None,
 ) -> None:
     """A single check-and-maybe-trade cycle, then exit. For stateless
     cron-driven runs (e.g. GitHub Actions), where each invocation is a fresh
@@ -221,18 +265,23 @@ def run_paper_trader_once(
             active_strategy_name, active_params, instrument, granularity,
             retune_strategies, retune_folds, retune_min_oos_sharpe,
             retune_max_overfit_gap, retune_search_mode, retune_max_combos,
+            retune_require_clear_noise_bar,
         )
         active_strategy_name, active_params = new_name, new_params
         strategy = get_strategy(active_strategy_name)
 
     print(f"Tick: {active_strategy_name}{active_params} on {instrument} ({granularity}) via '{broker}' broker.")
-    _tick(client, strategy, active_strategy_name, active_params, instrument, granularity, position_sizing)
+    _tick(
+        client, strategy, active_strategy_name, active_params, instrument, granularity,
+        position_sizing, max_drawdown_pct,
+    )
     set_bot_status(active_strategy_name, instrument, json.dumps(active_params), running=True)
 
 
 def _run_retune_cycle(
     current_strategy_name, current_params, instrument, granularity,
     retune_strategies, retune_folds, min_oos_sharpe, max_overfit_gap, search_mode, max_combos,
+    require_clear_noise_bar,
 ) -> tuple[str, dict]:
     from live.auto_retune import retune
 
@@ -242,24 +291,34 @@ def _run_retune_cycle(
         candidate_strategies=retune_strategies, n_folds=retune_folds,
         min_oos_sharpe=min_oos_sharpe, max_overfit_gap=max_overfit_gap,
         search_mode=search_mode, max_combos=max_combos,
+        require_clear_noise_bar=require_clear_noise_bar,
     )
+    sig = outcome.significance
     record_retune_event(
         current_strategy_name, json.dumps(current_params),
         outcome.strategy_name, json.dumps(outcome.params),
         outcome.mean_test_sharpe, outcome.overfit_gap, outcome.changed,
+        n_trials=sig.n_trials, expected_max_null=sig.expected_max_null, clears_null_bar=sig.clears_null_bar,
     )
     append_history(
         current_strategy_name, current_params, outcome.strategy_name, outcome.params,
         outcome.changed, outcome.mean_test_sharpe, outcome.overfit_gap,
+        n_trials=sig.n_trials, expected_max_null=sig.expected_max_null, clears_null_bar=sig.clears_null_bar,
     )
     write_current_strategy(
         outcome.strategy_name, outcome.params, source="auto_retune",
         mean_test_sharpe=outcome.mean_test_sharpe, overfit_gap=outcome.overfit_gap,
+        n_trials=sig.n_trials, expected_max_null=sig.expected_max_null, clears_null_bar=sig.clears_null_bar,
     )
     set_last_retune_at(dt.datetime.utcnow().isoformat())
     notify_retune(
         outcome.changed, current_strategy_name, current_params,
         outcome.strategy_name, outcome.params, outcome.mean_test_sharpe, outcome.overfit_gap,
+        n_trials=sig.n_trials, expected_max_null=sig.expected_max_null, clears_null_bar=sig.clears_null_bar,
+    )
+    print(
+        f"  -> {sig.n_trials} trials searched, noise benchmark {sig.expected_max_null:.2f} "
+        f"({'clears' if sig.clears_null_bar else 'does NOT clear'} it)"
     )
     if outcome.changed:
         print(f"  -> switching to {outcome.strategy_name}{outcome.params} "

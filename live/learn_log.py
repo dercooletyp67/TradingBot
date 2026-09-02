@@ -36,12 +36,19 @@ record of which strategy/params were live and why.
   `timestamp`, `old_strategy`/`old_params`, `new_strategy`/`new_params`,
   `changed`, `mean_test_sharpe` (out-of-sample), `overfit_gap`
   (in-sample Sharpe minus out-of-sample Sharpe -- large values mean the
-  pick looked good mostly because it was fit to the training window).
+  pick looked good mostly because it was fit to the training window),
+  `n_trials` (how many strategy/param combos were evaluated that cycle),
+  `expected_max_null` (the Sharpe you'd expect the BEST of that many trials
+  to show even with zero real skill -- see optimize/deflated_sharpe.py),
+  `clears_null_bar` (whether mean_test_sharpe actually beat that number).
 
 Read `mean_test_sharpe` and `overfit_gap` skeptically: this is a search
 over historical data re-run periodically, not a model that accumulates
 understanding. A high out-of-sample Sharpe in one cycle is not a promise
-about the next one.
+about the next one. `clears_null_bar: false` is the strongest signal here --
+it means the result is statistically indistinguishable from what pure luck
+would produce given how much searching was done, however good the raw
+Sharpe number looks.
 """
 
 
@@ -58,6 +65,9 @@ def write_current_strategy(
     source: str,
     mean_test_sharpe: float | None = None,
     overfit_gap: float | None = None,
+    n_trials: int | None = None,
+    expected_max_null: float | None = None,
+    clears_null_bar: bool | None = None,
 ) -> None:
     _ensure_dir()
     data = {
@@ -66,6 +76,9 @@ def write_current_strategy(
         "source": source,  # "seed" (from CLI args) or "auto_retune"
         "mean_test_sharpe": mean_test_sharpe,
         "overfit_gap": overfit_gap,
+        "n_trials": n_trials,
+        "expected_max_null": expected_max_null,
+        "clears_null_bar": clears_null_bar,
         "updated_at": dt.datetime.utcnow().isoformat(),
     }
     CURRENT_STRATEGY_FILE.write_text(json.dumps(data, indent=2))
@@ -79,6 +92,9 @@ def append_history(
     changed: bool,
     mean_test_sharpe: float | None,
     overfit_gap: float | None,
+    n_trials: int | None = None,
+    expected_max_null: float | None = None,
+    clears_null_bar: bool | None = None,
 ) -> None:
     _ensure_dir()
     entry = {
@@ -90,6 +106,9 @@ def append_history(
         "changed": changed,
         "mean_test_sharpe": mean_test_sharpe,
         "overfit_gap": overfit_gap,
+        "n_trials": n_trials,
+        "expected_max_null": expected_max_null,
+        "clears_null_bar": clears_null_bar,
     }
     with open(HISTORY_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")

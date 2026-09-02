@@ -28,7 +28,8 @@ $traderArgs = @(
     "--poll-seconds", "60",
     "--auto-retune-hours", "6",
     "--position-sizing", "volatility",
-    "--risk-pct", "0.01"
+    "--risk-pct", "0.01",
+    "--max-drawdown-pct", "25"
 )
 $traderProc = Start-Process -FilePath $venvPython -ArgumentList $traderArgs -WorkingDirectory $root `
     -WindowStyle Hidden -PassThru `

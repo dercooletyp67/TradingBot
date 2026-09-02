@@ -78,6 +78,15 @@ If a strategy's grid gets large, exhaustive search gets slow. Pass
 `--search random --max-combos 500` to sample that many combinations instead
 of walking the full grid — trades search coverage for wall-clock time.
 
+The output ends with a **multiple-testing check**: how many combinations
+you evaluated, the Sharpe ratio you'd expect the best of them to show by
+pure chance with zero real skill, and whether your actual best result beat
+that number. A result that doesn't clear it is statistically
+indistinguishable from noise, however good the raw Sharpe looks — see
+`optimize/deflated_sharpe.py`. The live auto-retuner (step 4) enforces this
+automatically; here it's just reported so you can factor it in yourself
+when picking a seed strategy.
+
 ## 4. Paper trade it live (no account, fake money)
 
 ```bash
@@ -97,10 +106,26 @@ VPS, in a `tmux`/background session) to forward-test over time. Add
 By default the strategy and params you pass in stay fixed forever — the bot
 does not learn anything on its own. `--auto-retune-hours N` makes it
 periodically re-run the same walk-forward search from step 3 on the latest
-data and **only** switch to a new strategy/params if a candidate clears two
-guardrails: a minimum out-of-sample Sharpe (`--retune-min-oos-sharpe`,
-default 0.0) and a maximum overfit gap (`--retune-max-overfit-gap`, default
-1.5). If nothing clears the bar, it keeps running what it already had.
+data and **only** switch to a new strategy/params if a candidate clears
+three guardrails: a minimum out-of-sample Sharpe (`--retune-min-oos-sharpe`,
+default 0.0), a maximum overfit gap (`--retune-max-overfit-gap`, default
+1.5), and — the one that actually matters most — the **multiple-testing
+noise benchmark**. If nothing clears every bar, it keeps running what it
+already had.
+
+That third guardrail deserves an explanation, because it's the difference
+between a number that means something and a number that doesn't. If you
+evaluate 100 (strategy, params) combinations, the *best* one's Sharpe ratio
+looks inflated just from having tried 100 things — pure noise, with zero
+real skill, eventually produces a good-looking result by chance alone given
+enough tries. `optimize/deflated_sharpe.py` computes the Sharpe you'd
+*expect* the best of N trials to show even with no real edge at all
+(Bailey & Lopez de Prado's expected-maximum-Sharpe-under-the-null
+benchmark), and a re-tune candidate must beat that number, not just clear
+an arbitrary flat threshold. Skip it with `--retune-ignore-noise-bar` if you
+want the old, more permissive behavior — but running this bot for real, you
+almost always want it on, since it's specifically designed to catch the
+failure mode auto-retuning is most exposed to.
 
 ```bash
 python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
@@ -119,6 +144,32 @@ depending on how many combinations/strategies you include).
 Every re-tune decision is also written to [learn/](learn/) as plain files
 (`current_strategy.json`, `history.jsonl`) — open them in a text editor if
 you want to see what it's picked over time without touching the database.
+
+### Kill switch (max drawdown)
+
+`--max-drawdown-pct 20` flattens the position and halts **all** trading the
+moment equity falls that far below its all-time peak, until manually
+cleared. There's no way to tell, in the moment, whether a losing stretch is
+"the strategy is just having a bad week" (normal, no action needed) or
+"something is badly wrong" (a bug, a data problem, a regime the strategy
+has no business trading in) — so this doesn't try to guess. It stops the
+bleeding at a pre-agreed line and waits for a human to look, which is the
+right default when you genuinely don't know which situation you're in.
+
+```bash
+python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
+    --instrument EUR_USD --granularity H1 --max-drawdown-pct 20
+```
+
+Once tripped, every subsequent tick just records equity/heartbeat (so the
+dashboard still shows it's alive) and skips trading entirely — no candle
+fetch, no signal, no orders — until you clear it:
+
+```bash
+python run_paper_trader.py --strategy sma_cross --instrument EUR_USD --granularity H1 --resume-trading --once
+```
+
+Off by default (no drawdown limit). See `live/kill_switch.py`.
 
 ### Position sizing
 
@@ -156,6 +207,18 @@ so an unusually large single move can still cost more than the risk
 budget. See `live/position_sizing.py` for the full caveats (it also assumes
 the account currency equals the pair's quote currency, which is exactly
 true for EUR_USD/USD and BTC_USD but an approximation for other pairs).
+
+### Cost model
+
+The simulated broker's spread cost isn't flat — it's a constant floor
+(`spread_bps`, 2.0 by default) plus a slippage term that scales with
+recent volatility (ATR as a % of price, via `slippage_atr_multiplier`,
+0.5 by default). Real bid/ask spreads and execution slippage widen in
+choppy conditions and tighten in calm ones; assuming a flat cost is
+optimistic exactly when it matters most, since a strategy's apparent edge
+often shows up precisely during the volatile stretches where real costs
+would have been highest. Not exposed as CLI flags (yet) — change the
+defaults in `live/simulated_broker.py` if you want different values.
 
 ### Notifications
 
@@ -303,13 +366,15 @@ strategies/               one file per strategy: generate_signals(df, **params) 
 backtest/engine.py        vectorized backtest (no lookahead, spread/slippage cost)
 backtest/metrics.py       Sharpe, drawdown, win rate, profit factor
 optimize/search.py        walk-forward grid/random search across a strategy's param_grid
-live/simulated_broker.py  default paper backend: no account, local fake balance/position
+optimize/deflated_sharpe.py  multiple-testing noise benchmark (Bailey & Lopez de Prado)
+live/simulated_broker.py  default paper backend: no account, local fake balance/position, volatility-scaled costs
 live/oanda_client.py      optional real OANDA demo-account backend
 live/paper_trader.py      polling loop: signal -> order -> log
-live/auto_retune.py       periodic re-search + guardrails, called from paper_trader.py
+live/auto_retune.py       periodic re-search + guardrails (incl. the noise benchmark), called from paper_trader.py
+live/kill_switch.py       max-drawdown decision logic, called from paper_trader.py
 live/learn_log.py         writes learn/ plain-file snapshots of re-tune decisions
 live/position_sizing.py   fixed vs volatility(ATR)-based unit sizing
-live/notify.py            optional Discord webhook notifications (trade fills, re-tunes)
+live/notify.py            optional Discord webhook notifications (trade fills, re-tunes, kill switch)
 storage/db.py             SQLite: trades, equity snapshots, bot status, retune history
 learn/                    plain-file record of what the bot has picked and why (see learn/README.md)
 dashboard/                FastAPI API + static dashboard page (local EUR/USD instance; BTC-USD reuses this on port 8001)
@@ -340,3 +405,10 @@ run_paper_trader.py       CLI (--once for a single cron-driven tick)
 - Volatility-based position sizing controls how big the next trade is, not
   how much a single bad move can cost — there's no real stop-loss order
   behind it.
+- The multiple-testing noise benchmark tells you a result isn't
+  *explainable by search volume alone* — it doesn't prove a strategy has a
+  real edge. Overfitting to the specific backtest window, regime-dependence,
+  and ordinary bad luck are all still live possibilities even for a result
+  that clears the bar.
+- The kill switch stops the bleeding at a drawdown line; it can't tell you
+  *why* the drawdown happened, and it doesn't undo losses already taken.

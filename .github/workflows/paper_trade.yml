@@ -52,6 +52,7 @@ jobs:
           --instrument EUR_USD --granularity H1
           --auto-retune-hours 6 --retune-search grid
           --position-sizing volatility --risk-pct 0.01
+          --max-drawdown-pct 25
 
       - name: Export dashboard data
         run: python export_dashboard_data.py

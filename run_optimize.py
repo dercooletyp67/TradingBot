@@ -14,6 +14,7 @@ import datetime as dt
 
 from backtest.metrics import GRANULARITY_BARS_PER_YEAR
 from data.fetch import fetch_oanda_candles, fetch_yfinance_candles, generate_synthetic_ohlc
+from optimize.deflated_sharpe import assess_significance
 from optimize.search import run_sweep
 from strategies import STRATEGIES, get_strategy
 
@@ -69,15 +70,17 @@ def main():
           f"{len(strategy_names)} strategy(ies), {args.folds} walk-forward folds, on {len(df)} bars.\n")
 
     all_results = []
+    all_sharpes = []
     for name in strategy_names:
         strat = get_strategy(name)
-        results = run_sweep(
+        outcome = run_sweep(
             df, strat, bars_per_year, n_folds=args.folds, cost_bps=args.cost_bps,
             max_workers=args.workers, top_n=args.top,
             search_mode=args.search, max_combos=args.max_combos,
         )
-        for r in results:
+        for r in outcome.top_results:
             all_results.append((name, r))
+        all_sharpes.extend(outcome.all_test_sharpes)
 
     all_results.sort(key=lambda pair: pair[1].mean_test_sharpe, reverse=True)
 
@@ -93,6 +96,18 @@ def main():
         "\n'overfit gap' = in-sample Sharpe minus out-of-sample Sharpe. Large positive gaps mean the "
         "combo looked good mostly because it was fit to the training data, not because it's robust. "
         "Prefer combos with a high OOS Sharpe AND a small gap."
+    )
+
+    sig = assess_significance(all_sharpes)
+    verdict = "CLEARS the noise bar" if sig.clears_null_bar else "does NOT clear the noise bar"
+    print(
+        f"\nMultiple-testing check: {sig.n_trials} combinations were evaluated across "
+        f"{len(strategy_names)} strategy(ies). Even with ZERO real skill, searching that much would be "
+        f"expected to turn up a Sharpe of ~{sig.expected_max_null:.2f} by chance alone. The best result "
+        f"found here (Sharpe {sig.best_sharpe:.2f}) {verdict} (margin: {sig.margin:+.2f}).\n"
+        "A result that doesn't clear this bar is statistically indistinguishable from what this much "
+        "searching would produce with no edge at all -- treat it accordingly, however good the raw "
+        "number looks."
     )
 
 

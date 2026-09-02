@@ -34,6 +34,13 @@
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
   .dot.running { background: var(--green); }
   .dot.stale { background: var(--amber); }
+  .dot.halted { background: var(--red); }
+  .halted-banner {
+    margin: 10px 0; padding: 10px 14px; border-radius: 8px;
+    background: rgba(255,92,114,0.12); border: 1px solid var(--red);
+    color: var(--red); font-size: 13px; display: none;
+  }
+  .halted-banner.show { display: block; }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -74,6 +81,7 @@
   <div class="subtitle">Paper trading, run on a schedule by GitHub Actions &mdash; no real money at risk, no broker account</div>
   <span class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">loading...</span></span>
   <div class="note" id="heartbeatNote"></div>
+  <div class="halted-banner" id="haltedBanner"></div>
 
   <div class="grid" id="statsGrid"></div>
 
@@ -149,7 +157,15 @@ async function refresh() {
   const minutesSince = lastHeartbeat ? (Date.now() - lastHeartbeat.getTime()) / 60000 : null;
   const isStale = minutesSince === null || minutesSince > STALE_AFTER_MINUTES;
 
-  if (!status.strategy) {
+  const banner = document.getElementById("haltedBanner");
+  banner.className = "halted-banner";
+
+  if (status.trading_halted) {
+    dot.className = "dot halted";
+    text.textContent = `HALTED — ${status.strategy} on ${status.instrument}`;
+    banner.className = "halted-banner show";
+    banner.textContent = `\u{1F6D1} Kill switch tripped${status.halted_at ? " at " + new Date(status.halted_at + "Z").toLocaleString() : ""}: ${status.halted_reason || "drawdown limit exceeded"}. Position flattened. Cleared with --resume-trading.`;
+  } else if (!status.strategy) {
     dot.className = "dot";
     text.textContent = "Not started yet";
     note.textContent = "";
@@ -228,6 +244,9 @@ async function refresh() {
         : `<span style="color:var(--muted)">kept current</span>`;
       const sharpe = r.mean_test_sharpe != null ? r.mean_test_sharpe.toFixed(2) : "&mdash;";
       const gap = r.overfit_gap != null ? r.overfit_gap.toFixed(2) : "&mdash;";
+      const noiseBar = r.expected_max_null != null ? r.expected_max_null.toFixed(2) : "&mdash;";
+      const clearsBar = r.clears_null_bar == null ? "&mdash;"
+        : r.clears_null_bar ? `<span class="pos">clears</span>` : `<span class="neg">noise</span>`;
       return `
         <tr>
           <td>${new Date(r.timestamp + "Z").toLocaleString()}</td>
@@ -236,13 +255,19 @@ async function refresh() {
           <td style="font-size:12px">${newLabel}</td>
           <td>${sharpe}</td>
           <td>${gap}</td>
+          <td>${r.n_trials ?? "&mdash;"}</td>
+          <td>${noiseBar}</td>
+          <td>${clearsBar}</td>
         </tr>`;
     }).join("");
     retuneContainer.innerHTML = `
       <table>
-        <thead><tr><th>Time</th><th>Result</th><th>Old</th><th>New</th><th>OOS Sharpe</th><th>Overfit Gap</th></tr></thead>
+        <thead><tr><th>Time</th><th>Result</th><th>Old</th><th>New</th><th>OOS Sharpe</th><th>Overfit Gap</th><th>Trials</th><th>Noise Bar</th><th>vs. Noise</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">"Noise Bar" = the Sharpe you'd expect from pure luck given how many
+      combinations were searched that cycle. "clears" means the result beat that benchmark; "noise" means it's
+      statistically indistinguishable from what that much searching would produce with zero real skill.</div>`;
   }
 }
 

@@ -154,6 +154,14 @@ def param_combinations(
     return all_combos
 
 
+@dataclass
+class SweepOutcome:
+    top_results: list[SweepResult]
+    all_test_sharpes: list[float]  # from every combo evaluated, not just the winners --
+    # needed by optimize/deflated_sharpe.py, since the multiple-testing
+    # benchmark depends on how much searching was actually done.
+
+
 def run_sweep(
     df: pd.DataFrame,
     strategy: Strategy,
@@ -164,10 +172,8 @@ def run_sweep(
     top_n: int = 10,
     search_mode: str = "grid",
     max_combos: int | None = None,
-) -> list[SweepResult]:
-    """Search strategy.param_grid with walk-forward validation.
-    Returns the top_n combinations ranked by mean out-of-sample Sharpe.
-    """
+) -> SweepOutcome:
+    """Search strategy.param_grid with walk-forward validation."""
     folds = walk_forward_folds(len(df), n_folds=n_folds)
     combos = param_combinations(strategy.param_grid, search_mode=search_mode, max_combos=max_combos)
 
@@ -184,5 +190,6 @@ def run_sweep(
             if res is not None:
                 results.append(res)
 
+    all_sharpes = [r.mean_test_sharpe for r in results]
     results.sort(key=lambda r: r.mean_test_sharpe, reverse=True)
-    return results[:top_n]
+    return SweepOutcome(top_results=results[:top_n], all_test_sharpes=all_sharpes)

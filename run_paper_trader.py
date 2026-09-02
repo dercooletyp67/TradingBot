@@ -27,6 +27,13 @@ Examples:
   # ~1% of balance per trade, position size scaled down when ATR is high:
   python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
       --instrument EUR_USD --granularity H1 --position-sizing volatility --risk-pct 0.01
+
+  # Kill switch: flatten and halt if equity ever drops 20% below its peak:
+  python run_paper_trader.py --strategy sma_cross --params fast=10,slow=50 \
+      --instrument EUR_USD --granularity H1 --max-drawdown-pct 20
+
+  # Clear a tripped kill switch and resume trading:
+  python run_paper_trader.py --strategy sma_cross --instrument EUR_USD --granularity H1 --resume-trading --once
 """
 from __future__ import annotations
 
@@ -35,6 +42,7 @@ import argparse
 from live.paper_trader import run_paper_trader, run_paper_trader_once
 from live.position_sizing import PositionSizingConfig
 from run_backtest import parse_params
+from storage.db import init_db, resume_trading
 
 
 def main():
@@ -82,11 +90,32 @@ def main():
     ap.add_argument("--retune-search", choices=["grid", "random"], default="grid")
     ap.add_argument("--retune-max-combos", type=int, default=None)
     ap.add_argument(
+        "--retune-ignore-noise-bar", action="store_true",
+        help="allow a re-tune switch even if the best candidate doesn't beat the multiple-testing "
+        "noise benchmark (see optimize/deflated_sharpe.py) -- off by default, i.e. the noise bar "
+        "is required to clear by default",
+    )
+    ap.add_argument(
+        "--max-drawdown-pct", type=float, default=None,
+        help="kill switch: flatten the position and halt all trading once equity falls this many "
+        "percent below its all-time peak (e.g. 20). Off by default. Clear a tripped switch with "
+        "--resume-trading",
+    )
+    ap.add_argument(
+        "--resume-trading", action="store_true",
+        help="clear a tripped kill switch, then proceed with the tick/loop as normal",
+    )
+    ap.add_argument(
         "--once", action="store_true",
         help="do a single check-and-maybe-trade cycle then exit, instead of looping forever "
         "(for cron-driven runs, e.g. GitHub Actions)",
     )
     args = ap.parse_args()
+
+    if args.resume_trading:
+        init_db()
+        resume_trading()
+        print("Kill switch cleared, resuming trading.")
 
     retune_strategies = None if args.retune_strategies == "all" else args.retune_strategies.split(",")
 
@@ -115,6 +144,8 @@ def main():
         retune_max_overfit_gap=args.retune_max_overfit_gap,
         retune_search_mode=args.retune_search,
         retune_max_combos=args.retune_max_combos,
+        retune_require_clear_noise_bar=not args.retune_ignore_noise_bar,
+        max_drawdown_pct=args.max_drawdown_pct,
     )
 
     if args.once:
