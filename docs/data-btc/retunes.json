@@ -8,7 +8,10 @@
     "new_params_json": "{\"period\": 7, \"oversold\": 25, \"overbought\": 80}",
     "mean_test_sharpe": 1.9124402964923697,
     "overfit_gap": 0.11494446997443464,
-    "changed": 1
+    "changed": 1,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 2,
@@ -19,7 +22,10 @@
     "new_params_json": "{\"period\": 7, \"oversold\": 25, \"overbought\": 70}",
     "mean_test_sharpe": 1.9215297159916211,
     "overfit_gap": -0.9154975361774325,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 1,
@@ -30,6 +36,9 @@
     "new_params_json": "{\"period\": 7, \"oversold\": 25, \"overbought\": 70}",
     "mean_test_sharpe": 1.9037333455722818,
     "overfit_gap": -0.06388925986958682,
-    "changed": 1
+    "changed": 1,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   }
 ]
