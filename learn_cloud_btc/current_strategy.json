@@ -3,10 +3,10 @@
   "params": {
     "period": 7,
     "oversold": 25,
-    "overbought": 80
+    "overbought": 70
   },
-  "source": "seed",
-  "mean_test_sharpe": null,
-  "overfit_gap": null,
-  "updated_at": "2026-09-01T16:55:10.195877"
+  "source": "auto_retune",
+  "mean_test_sharpe": 1.9037333455722818,
+  "overfit_gap": -0.06388925986958682,
+  "updated_at": "2026-09-02T00:32:25.525940"
 }
