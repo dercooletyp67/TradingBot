@@ -4,9 +4,13 @@
   "instrument": "EUR_USD",
   "params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
   "running": 1,
-  "last_heartbeat": "2026-09-02T17:02:09.096197",
+  "last_heartbeat": "2026-09-02T20:00:21.433955",
   "sim_balance": 10104.615054714115,
   "sim_position_units": -100000.0,
   "sim_entry_price": 1.1679394241374597,
-  "last_retune_at": "2026-09-02T12:53:58.894463"
+  "last_retune_at": "2026-09-02T20:00:20.807276",
+  "peak_equity": 10996.836944625853,
+  "trading_halted": 0,
+  "halted_at": null,
+  "halted_reason": null
 }

@@ -1,5 +1,19 @@
 [
   {
+    "id": 49,
+    "timestamp": "2026-09-02T20:00:20.805555",
+    "old_strategy": "rsi_reversion",
+    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "new_strategy": "rsi_reversion",
+    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "mean_test_sharpe": 2.3430973282499155,
+    "overfit_gap": -1.4796557555311283,
+    "changed": 0,
+    "n_trials": 86,
+    "expected_max_null": 3.7736584127044246,
+    "clears_null_bar": 0
+  },
+  {
     "id": 48,
     "timestamp": "2026-09-02T12:53:58.878778",
     "old_strategy": "rsi_reversion",
@@ -8,7 +22,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.3286970300349146,
     "overfit_gap": -1.2782250111517393,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 47,
@@ -19,7 +36,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.322751462419138,
     "overfit_gap": -1.2288555255734712,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 46,
@@ -30,7 +50,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.315128070257385,
     "overfit_gap": -1.2515905346195462,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 45,
@@ -41,7 +64,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.3609015298928133,
     "overfit_gap": -2.646878578926786,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 44,
@@ -52,7 +78,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.316382554956763,
     "overfit_gap": -1.5130099346521928,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 43,
@@ -63,7 +92,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2979148322892318,
     "overfit_gap": -1.4923888750740608,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 42,
@@ -74,7 +106,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.368839014682682,
     "overfit_gap": -1.468943924753216,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 41,
@@ -85,7 +120,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.387677359389193,
     "overfit_gap": -1.4378887454466551,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 40,
@@ -96,7 +134,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.387677359389193,
     "overfit_gap": -1.4378887454466551,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 39,
@@ -107,7 +148,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.387677359389193,
     "overfit_gap": -1.4378887454466551,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 38,
@@ -118,7 +162,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.427854360445011,
     "overfit_gap": -1.5875469430331457,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 37,
@@ -129,7 +176,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.387677359389193,
     "overfit_gap": -1.4378887454466551,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 36,
@@ -140,7 +190,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.387677359389193,
     "overfit_gap": -1.4378887454466551,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 35,
@@ -151,7 +204,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.3803830380843642,
     "overfit_gap": -1.4321436444461426,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 34,
@@ -162,7 +218,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.261539681759328,
     "overfit_gap": -0.017720701050031984,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 33,
@@ -173,7 +232,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.3357696596300777,
     "overfit_gap": -0.10890560693609963,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 32,
@@ -184,7 +246,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.3276821128404084,
     "overfit_gap": -1.7139169835487555,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 31,
@@ -195,7 +260,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.28932525214769,
     "overfit_gap": -1.6157366805459095,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 30,
@@ -206,7 +274,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.191663220964557,
     "overfit_gap": -1.5852905479698705,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 29,
@@ -217,7 +288,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1769647844722804,
     "overfit_gap": -1.6338112967793301,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 28,
@@ -228,7 +302,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1957430697752014,
     "overfit_gap": -1.741551832257492,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 27,
@@ -239,7 +316,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.203587137071258,
     "overfit_gap": -1.8567493895173457,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 26,
@@ -250,7 +330,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2192879786855753,
     "overfit_gap": -0.6311150095619982,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 25,
@@ -261,7 +344,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2339505414060596,
     "overfit_gap": -2.1021048341865987,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 24,
@@ -272,7 +358,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1848981547056123,
     "overfit_gap": -1.9475505392221304,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 23,
@@ -283,7 +372,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1815744158395574,
     "overfit_gap": -1.9891279316688986,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 22,
@@ -294,7 +386,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2277185056938915,
     "overfit_gap": -2.1124063713336376,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 21,
@@ -305,7 +400,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1998750408899888,
     "overfit_gap": -2.1000377165628183,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 20,
@@ -316,7 +414,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.159964514608325,
     "overfit_gap": -0.7470459796020912,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 19,
@@ -327,7 +428,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.159964514608325,
     "overfit_gap": -0.7470459796020912,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 18,
@@ -338,7 +442,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.159964514608325,
     "overfit_gap": -0.7470459796020912,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 17,
@@ -349,7 +456,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.159964514608325,
     "overfit_gap": -0.7470459796020912,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 16,
@@ -360,7 +470,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2398750262963105,
     "overfit_gap": -2.206709941132067,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 15,
@@ -371,7 +484,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2398750262963105,
     "overfit_gap": -2.206709941132067,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 14,
@@ -382,7 +498,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.159964514608325,
     "overfit_gap": -0.7470459796020912,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 13,
@@ -393,7 +512,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2398750262963105,
     "overfit_gap": -2.206709941132067,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 12,
@@ -404,7 +526,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1933461390686833,
     "overfit_gap": -2.129572003005801,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 11,
@@ -415,7 +540,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1718558658669993,
     "overfit_gap": -2.072764740773141,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 10,
@@ -426,7 +554,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.123784782933061,
     "overfit_gap": -1.9995317559032117,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 9,
@@ -437,7 +568,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1903002043593927,
     "overfit_gap": -2.093264422513766,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 8,
@@ -448,7 +582,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2061539286946665,
     "overfit_gap": -2.181332008473632,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 7,
@@ -459,7 +596,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1451650558145205,
     "overfit_gap": -2.0530008090547978,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 6,
@@ -470,7 +610,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.2369551441823887,
     "overfit_gap": -2.749688460275455,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 5,
@@ -481,7 +624,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.230177364441052,
     "overfit_gap": -2.2139069560163556,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 4,
@@ -492,7 +638,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.311890123491473,
     "overfit_gap": -2.3889745406444662,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 3,
@@ -503,7 +652,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.193498967942605,
     "overfit_gap": -2.2699175401470635,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 2,
@@ -514,7 +666,10 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.1206675097504357,
     "overfit_gap": -2.237660754421991,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   },
   {
     "id": 1,
@@ -525,6 +680,9 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.0631331466361242,
     "overfit_gap": -2.064832098231056,
-    "changed": 0
+    "changed": 0,
+    "n_trials": null,
+    "expected_max_null": null,
+    "clears_null_bar": null
   }
 ]
