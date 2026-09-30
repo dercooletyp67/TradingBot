@@ -6,10 +6,10 @@
     "overbought": 80
   },
   "source": "auto_retune",
-  "mean_test_sharpe": 2.7811326130479053,
-  "overfit_gap": -0.6507693174207176,
+  "mean_test_sharpe": 2.2982511265269325,
+  "overfit_gap": -3.8736267302910203,
   "n_trials": 86,
-  "expected_max_null": 3.020900857565571,
+  "expected_max_null": 3.12670047786704,
   "clears_null_bar": false,
-  "updated_at": "2026-09-30T08:30:21.646217"
+  "updated_at": "2026-09-30T15:18:05.744386"
 }
