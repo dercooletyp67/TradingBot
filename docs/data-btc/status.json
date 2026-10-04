@@ -4,7 +4,7 @@
   "instrument": "BTC-USD",
   "params_json": "{\"period\": 7, \"oversold\": 25, \"overbought\": 80}",
   "running": 1,
-  "last_heartbeat": "2026-10-04T20:26:12.559009",
+  "last_heartbeat": "2026-10-04T23:35:49.474508",
   "sim_balance": 10300.10466030889,
   "sim_position_units": -0.060280567725345,
   "sim_entry_price": 85073.77095513394,
