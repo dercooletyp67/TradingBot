@@ -1950,5 +1950,13 @@
     "instrument": "BTC-USD",
     "balance": 10334.98636362399,
     "unrealized_pnl": 58.312087099932576
+  },
+  {
+    "id": 245,
+    "timestamp": "2026-10-14T05:23:45.448732",
+    "strategy": "rsi_reversion",
+    "instrument": "BTC-USD",
+    "balance": 10334.98636362399,
+    "unrealized_pnl": 56.632937392666705
   }
 ]
