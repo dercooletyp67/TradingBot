@@ -1,5 +1,16 @@
 [
   {
+    "id": 99,
+    "timestamp": "2026-10-15T07:03:29.829560",
+    "strategy": "rsi_reversion",
+    "instrument": "EUR_USD",
+    "side": "sell",
+    "units": 5138.21642557679,
+    "price": 1.1202298198052816,
+    "pnl": 33.40395080059939,
+    "oanda_order_id": "sim-1792047809829"
+  },
+  {
     "id": 98,
     "timestamp": "2026-10-14T15:55:23.568002",
     "strategy": "rsi_reversion",
