@@ -1,5 +1,19 @@
 [
   {
+    "id": 181,
+    "timestamp": "2026-10-20T00:31:39.210222",
+    "old_strategy": "rsi_reversion",
+    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "new_strategy": "rsi_reversion",
+    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "mean_test_sharpe": 3.6117335733085643,
+    "overfit_gap": -3.1127913515571857,
+    "changed": 0,
+    "n_trials": 86,
+    "expected_max_null": 4.037541997669636,
+    "clears_null_bar": 0
+  },
+  {
     "id": 180,
     "timestamp": "2026-10-19T16:49:55.068694",
     "old_strategy": "rsi_reversion",
