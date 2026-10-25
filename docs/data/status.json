@@ -4,7 +4,7 @@
   "instrument": "EUR_USD",
   "params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
   "running": 1,
-  "last_heartbeat": "2026-10-25T08:59:01.334374",
+  "last_heartbeat": "2026-10-25T13:40:19.816471",
   "sim_balance": 11383.707558175856,
   "sim_position_units": 0.0,
   "sim_entry_price": 0.0,
