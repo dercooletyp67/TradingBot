@@ -1,5 +1,16 @@
 [
   {
+    "id": 22,
+    "timestamp": "2026-10-29T19:13:44.734913",
+    "strategy": "rsi_reversion",
+    "instrument": "BTC-USD",
+    "side": "sell",
+    "units": 0.12671872916619192,
+    "price": 80480.03152209822,
+    "pnl": -120.4862773773819,
+    "oanda_order_id": "sim-1793301224734"
+  },
+  {
     "id": 21,
     "timestamp": "2026-10-22T07:31:04.274040",
     "strategy": "rsi_reversion",
