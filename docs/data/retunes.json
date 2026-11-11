@@ -1,5 +1,19 @@
 [
   {
+    "id": 243,
+    "timestamp": "2026-11-11T22:07:40.035780",
+    "old_strategy": "rsi_reversion",
+    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "new_strategy": "rsi_reversion",
+    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
+    "mean_test_sharpe": 3.3544413475579993,
+    "overfit_gap": -1.971257211962011,
+    "changed": 0,
+    "n_trials": 86,
+    "expected_max_null": 3.987295298806543,
+    "clears_null_bar": 0
+  },
+  {
     "id": 242,
     "timestamp": "2026-11-11T15:01:21.215906",
     "old_strategy": "rsi_reversion",
@@ -2780,20 +2794,6 @@
     "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
     "mean_test_sharpe": 2.316382554956763,
     "overfit_gap": -1.5130099346521928,
-    "changed": 0,
-    "n_trials": null,
-    "expected_max_null": null,
-    "clears_null_bar": null
-  },
-  {
-    "id": 43,
-    "timestamp": "2026-08-31T15:54:22.187000",
-    "old_strategy": "rsi_reversion",
-    "old_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
-    "new_strategy": "rsi_reversion",
-    "new_params_json": "{\"period\": 21, \"oversold\": 20, \"overbought\": 80}",
-    "mean_test_sharpe": 2.2979148322892318,
-    "overfit_gap": -1.4923888750740608,
     "changed": 0,
     "n_trials": null,
     "expected_max_null": null,
